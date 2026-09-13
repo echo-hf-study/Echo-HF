@@ -294,16 +294,21 @@ function flash(){
   r.innerHTML="Please complete all five fields with valid numbers.";
 }
 
+// Displayed risk is capped at RISK_CAP: the Cox mapping is unbounded, but calibration was evaluated only
+// up to the highest observed band-level incidence (about 30%), so higher values are reported as "above 30%".
+const RISK_CAP = 0.30;
+
 function render(score, risk, tier){
-  const pct = (risk*100);
+  const capped = risk > RISK_CAP;
+  const pct = (Math.min(risk, RISK_CAP)*100);
   // No interval is displayed: a computable interval would cover only recalibration sampling error,
   // not model or transportability uncertainty, and would read as misleadingly precise.
   const r = $("result");
   r.className="result";
   r.innerHTML = `
     <div class="tier" style="color:${tier.color}">${tier.name} risk</div>
-    <div class="riskval">${pct.toFixed(1)}%</div>
-    <div class="riskci">estimated 5-year risk of symptomatic HF</div>
+    <div class="riskval">${capped ? "above " + (RISK_CAP*100).toFixed(0) + "%" : pct.toFixed(1) + "%"}</div>
+    <div class="riskci">${capped ? "estimated 5-year risk of symptomatic HF exceeds the range in which the estimate was evaluated" : "estimated 5-year risk of symptomatic HF"}</div>
     <div class="bar"><div class="mk" style="left:calc(${(score*100).toFixed(1)}% - 1.5px)"></div></div>
     <div class="scale"><span>0</span><span>Echo-HF score ${score.toFixed(2)}</span><span>1</span></div>
   `;
